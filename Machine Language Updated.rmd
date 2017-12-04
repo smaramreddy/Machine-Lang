@@ -1,0 +1,108 @@
+---
+title: "Machine Language"
+author: "Sudhakarreddy M"
+date: "December 2, 2017"
+output: html_document
+---
+## Synopsys
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. 
+
+This project uses the data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants in which they were asked to perform barbell lifts correctly and incorrectly in 5 different ways. The goal of the project is to predict the manner in which they did the exercise
+
+The training data for this project are available here: 
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+chooseCRANmirror(graphics=FALSE, ind=1)
+install.packages("caret")
+library(caret)
+```
+
+## Data Processing
+Download the files from the given URLs and read them in to separate dataframes. Eliminate the columns with missing values.
+
+```{r}
+
+trainingurl <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+testurl <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+
+setwd("C:/Users/s.maramreddy/OneDrive - Accenture/Personal/R/Machine Lang/")
+
+download.file(trainingurl, "trngfiledwd.csv")
+download.file(testurl, "tstfiledwd.csv")
+
+trngfile <- read.csv("trngfiledwd.csv",na.strings=c("NA","#DIV/0!", ""))
+testfile <- read.csv("tstfiledwd.csv",na.strings=c("NA","#DIV/0!", ""))
+
+trngfile<-trngfile[,colSums(is.na(trngfile)) == 0]
+testfile <-testfile[,colSums(is.na(testfile)) == 0]
+
+trngfile  <-trngfile[,-c(1:7)]
+testfile <-testfile[,-c(1:7)]
+
+```
+
+### Cross Validation:
+Create the cross validation training set by taking 30% of the data from the given training test. 
+Below I have used 2 different models (Random Forest and boosted) for prediction and comparison of accuracy
+
+```{r}
+
+cvalind <- createDataPartition(y=trngfile$classe, p=0.3, list=FALSE)
+cvaltrngfile <- trngfile[cvalind,]
+cvaltestfile <- trngfile[-cvalind,]
+```
+
+### Exploratory Analysis
+```{r}
+
+plot(cvaltrngfile$classe, xlab="Class Variables", ylab="Frequency")
+```
+
+### Prediction models
+
+```{r}
+
+ctrl = trainControl(method='cv',number=5,repeats=2,returnResamp='none')
+
+fit1 <- train(classe~., data=cvaltrngfile, method="gbm",trControl=ctrl) 
+pred <- predict(fit1, cvaltestfile)
+confusionMatrix(pred, cvaltestfile$classe)
+
+fit2 <- train(classe~., data=cvaltrngfile, method="rf",trControl=ctrl) 
+pred2 <- predict(fit2, cvaltestfile)
+confusionMatrix(pred2, cvaltestfile$classe)
+```
+
+Now do the prediction on the unknown activities
+
+```{r}
+
+predtest <- predict(fit2, testfile)
+
+finalresult <- as.character(predtest)
+```
+
+## Results
+
+```{r}
+predwritefiles = function(z){
+  n = length(z)
+  for(i in 1:n){
+    filename = paste0("problem_id_",i,".txt")
+    write.table(z[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+
+predwritefiles(finalresult)
+```
+## Conclusion: As per the confusion matrix, we are able to predict 98% accuracry with Random Forest algorithm and 95% Accuracy  with Gradient Boosting algorithm

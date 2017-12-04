@@ -1,0 +1,42 @@
+---
+title: "Machine Language Practicals"
+author: "Sudhakarreddy M"
+date: "December 2, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+chooseCRANmirror(graphics=FALSE, ind=1)
+install.packages("caret")
+library(caret)
+
+trainingurl <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+testurl <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+
+setwd("C:/Users/s.maramreddy/OneDrive - Accenture/Personal/R/Machine Lang/")
+
+download.file(trainingurl, "trngfiledwd.csv")
+download.file(testurl, "tstfiledwd.csv")
+
+trngfile <- read.csv("trngfiledwd.csv",na.strings=c("NA","#DIV/0!", ""))
+testfile <- read.csv("tstfiledwd.csv",na.strings=c("NA","#DIV/0!", ""))
+
+trngfile<-trngfile[,colSums(is.na(trngfile)) == 0]
+testfile <-testfile[,colSums(is.na(testfile)) == 0]
+
+trngfile  <-trngfile[,-c(1:7)]
+testfile <-testfile[,-c(1:7)]
+
+cvalind <- createDataPartition(y=trngfile$classe, p=0.7, list=FALSE)
+cvaltrngfile <- trngfile[cvalind,]
+cvaltestfile <- trngfile[-cvalind,]
+
+fit1 <- train(classe~., data=cvaltrngfile, method="rf") 
+
+pred <- predict(fit1, cvaltestfile, type="class")
+confusionMatrix(pred, cvaltestfile$classe)
+
+```
+
+## R Markdown
